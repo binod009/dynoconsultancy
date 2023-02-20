@@ -1,13 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: "#4ca64c";
+  --secondary-color: "#333333";
+}
+.hoverwhite:hover {
+  color: white !important;
+}
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* font-family: "Montserrat", sans-serif; */
+  height: 200px !important;
+  font-family: "Poppins", sans-serif;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* For IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none !important; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
+}
+/* class="ant-pagination ant-pagination-mini ant-table-pagination ant-table-pagination-right css-dev-only-do-not-override-ixblex" */
+/* .ant-pagination {
+  margin-right: 30px !important;
+} */
+
+.boxshadow {
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+}
+.visitor-table {
+  max-width: 73vw;
+  font-size: 16px;
+}
+.fullwidth-table {
+  max-width: 81vw;
+}
+
+.ant-table-thead .ant-table-cell {
+  background-color: #9ca3af !important;
+}
+/* this is for larger device only */
+@media screen and (min-width: 1600px) {
+  .fullwidth-table {
+    max-width: 85vw;
+  }
+}
+
+.hovertextwhite:hover {
+  color: white !important;
+}
+
+label {
+  padding-left: 5px !important;
+}
+.ant-drawer-header {
+  background: linear-gradient(to right, #0f766e, #14b8a6) !important;
+}
+
+.ant-drawer-title {
+  color: #fff !important;
+}
+.ant-drawer-mask {
+  color: white !important;
+}
+
+.createuserSelect > .ant-select-selector {
+  height: 3rem !important;
+  display: flex !important;
+  width: 20rem !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.ant-collapse-content-box {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.ant-modal {
+  border-radius: 0 !important;
+}
+.ant-modal-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+.ant-modal-header {
+  background-color: #f3fbfd !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  padding: 1rem !important;
+}
+
+.ant-steps-item {
+  display: flex !important;
+  text-align: center !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin: 0 3px 0 0 !important;
+}
+
+.ant-steps-item-icon,
+.ant-steps-icon {
+  width: 32px !important;
+  height: 32px !important;
+  text-align: center !important;
+  border-radius: 50% !important;
+}
+.ant-steps-icon {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
 }
