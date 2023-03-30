@@ -33,9 +33,10 @@ const Leads = ({ isFilterShown, setIsFilterShown }: any) => {
   };
 
   const getLeads = async () => {
-    let leads_res = await axios.get(
+    const leads_res = await axios.get(
       "/api/v1/contact?type=lead&pagination_page=1&pagination_limit=25"
     );
+
     // add key to the leads_res for rowselection feature
 
     setLeadData(leads_res.data);

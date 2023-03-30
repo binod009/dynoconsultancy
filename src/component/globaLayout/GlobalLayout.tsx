@@ -1,10 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
+import type { MenuProps } from "antd";
 import {
   Avatar,
   Button,
+  DatePicker,
   Drawer,
   Dropdown,
+  Form,
   Input,
   message,
   Modal,
@@ -12,20 +15,16 @@ import {
   Steps,
   Table,
 } from "antd";
-import { ColumnsType } from "antd/es/table";
-import { AiFillFilter } from "react-icons/ai";
-import { useState } from "react";
-import FilterSection from "../filter/filter";
-import { BiUserPlus } from "react-icons/bi";
-import axios from "../../axios";
-import type { MenuProps } from "antd";
-import { DatePicker, Space } from "antd";
 import type { DatePickerProps, RangePickerProps } from "antd/es/date-picker";
+import TextArea from "antd/es/input/TextArea";
+import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
-import utc from "dayjs/plugin/utc";
-import { BsAlarmFill } from "react-icons/bs";
-import TextArea from "antd/es/input/TextArea";
+import { useState } from "react";
+import { AiFillFilter } from "react-icons/ai";
+import { BiUserPlus } from "react-icons/bi";
+import axios from "../../axios";
+import FilterSection from "../filter/filter";
 
 dayjs.extend(duration);
 interface DataType {
@@ -52,11 +51,28 @@ const GlobalLayout = ({
   const [openleadUserdrawer, setLeaderuserDrawer] = useState(false);
   const [singleUserData, setSingleUserData] = useState<any>({});
   const [current, setCurrent] = useState(0);
+  const [staff, setStaff] = useState();
   const [followuptimedate, setfollowuptimedate] = useState<any>(
-    dayjs().add(1, "day").set("hours", 10).set("minute", 30).set("seconds", 0)
+    dayjs().add(1, "day").set("hour", 11).set("minute", 17).set("seconds", 0)
   );
-  const [remainingTeForFollowup, setRemainingTimeForFollowup] = useState<any>();
+  const [form] = Form.useForm();
+  const formRef = useRef<any>();
+  const [remainingTimeForFollowup, setRemainingTimeForFollowup] =
+    useState<any>();
   const [isfollwupOpen, setisfollowupOpen] = useState(false);
+
+  const [createfollowup, setcreateFollowup] = useState({
+    assigned_to: [""],
+    date_and_time: followuptimedate,
+    associated_contacts: [""],
+    associated_organization: [""],
+    details: "",
+    remind_at: remainingTimeForFollowup,
+    remind_readable_time: "",
+    task_priority: "Medium",
+    task_title: "",
+    task_type: "Follow up",
+  });
 
   const showfollowupmodel = () => {
     setisfollowupOpen(true);
@@ -66,7 +82,7 @@ const GlobalLayout = ({
   };
 
   const getFollowupRemainingTime = () => {
-    let currentTime = dayjs();
+    let currentTime = new Date();
     let diffInHours = followuptimedate.diff(currentTime, "hours");
     let diffInDays = followuptimedate.diff(currentTime, "days");
     let diffInMonths = followuptimedate.diff(currentTime, "months");
@@ -85,10 +101,29 @@ const GlobalLayout = ({
         : diffInHours + " " + "hours";
     }
   };
+  const getStaffList = async () => {
+    let res = await axios.get("/api/v1/users/list");
+    let options: any = [];
+    res.data.data.map((item: any) => {
+      options.push({
+        value: item._id,
+        label: item.first_name + item.last_name,
+      });
+      setStaff(options);
+      setcreateFollowup((prev) => ({
+        ...prev,
+        assigned_to: options[0].value,
+      }));
+    });
+  };
+  useEffect(() => {
+    getStaffList();
+  }, []);
 
   useEffect(() => {
     setRemainingTimeForFollowup(getFollowupRemainingTime());
   }, [followuptimedate]);
+
   //after clicking the table username calling the api and saving state of user id
   const getSingleLeaduserData = async (_id: any) => {
     const singledata = await axios.get("api/v1/contact/" + _id);
@@ -219,17 +254,47 @@ const GlobalLayout = ({
     onChange: onSelectChange,
   };
 
-  const next = () => {
-    setCurrent(current + 1);
+  const getFormname = () => {
+    const formItem =
+      steps[current].content.props.children.length > 0
+        ? steps[current].content.props.children[0].props.children[1].props
+            .children.props
+        : steps[current].content.props.children.props.children[1].props.children
+            .props;
+    return formItem.name;
+  };
 
-    console.log(
-      "date_and_time",
-      dayjs(followuptimedate).startOf("second").toISOString()
-    );
-    console.log(
-      "remind_at",
-      followuptimedate.subtract(15, "minute").startOf("second").toISOString()
-    );
+  const next = () => {
+    setCurrent((prev) => prev + 1);
+    let name = getFormname();
+    if (name === "date_and_time") {
+      setcreateFollowup((prev) => ({
+        ...prev,
+        date_and_time: dayjs(form.getFieldsValue().date_and_time)
+          .startOf("second")
+          .toISOString(),
+      }));
+    } else if (name === "remind_readable_time") {
+      let remindme = form.getFieldsValue().remind_readable_time;
+      const time = parseInt(remindme.substring(0, 2));
+      const value = remindme.substring(2);
+      console.log(form.getFieldsValue().label);
+      console.log(form.getFieldsValue());
+      setcreateFollowup((prev) => ({
+        ...prev,
+        remind_readable_time: form.getFieldsValue().remind_readable_time,
+        remind_at: followuptimedate
+          .subtract(time, value)
+          .startOf("second")
+          .toISOString(),
+      }));
+    } else {
+      console.log([name], form.getFieldsValue()[name]);
+      setcreateFollowup((prev) => ({
+        ...prev,
+        [name]: form.getFieldsValue()[name],
+      }));
+    }
   };
   const prev = () => {
     setCurrent(current - 1);
@@ -239,10 +304,9 @@ const GlobalLayout = ({
     value: DatePickerProps["value"] | RangePickerProps["value"],
     dateString: [string, string] | string
   ) => {
-    console.log("Selected Time: ", value);
-
-    console.log("Formatted Selected Time: ", dateString);
-    console.log("initializedstateDate", followuptimedate);
+    // console.log("Selected Time: ", value);
+    // console.log("Formatted Selected Time: ", dateString);
+    // console.log("initializedstateDate", followuptimedate);
   };
 
   const onOk = (
@@ -251,7 +315,19 @@ const GlobalLayout = ({
     setfollowuptimedate(value);
   };
 
+  // collect id of assiged to staff in followup model
+  const handleChangeFollupAssign = (value: string | string[]) => {
+    console.log("thisis=>", value);
+    setcreateFollowup((prev: any) => ({
+      ...prev,
+      assigned_to: value,
+    }));
+  };
+
+  const handelRemindme = (value: string | number) => {};
+
   const headerStyle = { fontSize: "12px", color: "red" };
+
   const steps = [
     {
       content: (
@@ -263,30 +339,30 @@ const GlobalLayout = ({
               </span>
             </div>
             <div className="text-center">
-              {" "}
-              <DatePicker
-                format={"MMMM, D YYYY, h:mm A"}
-                use12Hours={true}
-                defaultValue={followuptimedate}
-                onOk={onOk}
-                onChange={onChange}
-                showTime={{
-                  format: "h:mm A",
-                  use12Hours: true,
-                }}
-                size="middle"
-                style={{
-                  width: "95%",
-                  borderRadius: 0,
-                }}
-                showMinute={true}
-                showNow={false}
-              />
+              <Form.Item name="date_and_time">
+                <DatePicker
+                  format={"MMMM, D YYYY, h:mm A"}
+                  use12Hours={true}
+                  defaultValue={followuptimedate}
+                  onOk={onOk}
+                  showTime={{
+                    format: "h:mm A",
+                    use12Hours: true,
+                  }}
+                  size="middle"
+                  style={{
+                    width: "95%",
+                    borderRadius: 0,
+                  }}
+                  showMinute={true}
+                  showNow={false}
+                />
+              </Form.Item>
             </div>
           </div>
           <div className="ml-3">
             <span className="font-semibold text-sm text-black">
-              Time Until Follow Up:<span> {remainingTeForFollowup}</span>
+              Time Until Follow Up:<span> {remainingTimeForFollowup}</span>
             </span>
           </div>
         </>
@@ -302,32 +378,44 @@ const GlobalLayout = ({
               </span>
             </div>
             <div className="text-center">
-              <Select
-                style={{ width: "95%" }}
-                options={[
-                  {
-                    value: "15 minute before due",
-                    label: "15 minute before due",
-                  },
-                  {
-                    value: "10 minute before due",
-                    label: "10 minute defore due",
-                  },
-                  {
-                    value: "15 minute before due",
-                    label: "15 minute before due",
-                  },
-                  {
-                    value: "30 minute before due",
-                    label: "30 minute before due",
-                  },
-                  { value: "1 hour before due", label: "1 hour before due" },
-                  { value: "2 hour before due", label: "2 hour before due" },
-                  { value: "5 hour before due", label: "5 hour before due" },
-                  { value: "1 day before due", label: "1 day before due" },
-                ]}
-                className="rounded-none"
-              />
+              <Form.Item name="remind_readable_time">
+                <Select
+                  style={{ width: "95%" }}
+                  options={[
+                    {
+                      label: "5 minute before due",
+                      value: 5 + "minute before due",
+                    },
+                    {
+                      label: "10 minute before due",
+                      value: 10 + "minute before due",
+                    },
+                    {
+                      label: "15 minute before due",
+                      value: 15 + "minute before due",
+                    },
+                    {
+                      label: "30 minute before due",
+                      value: 30 + "minute before due",
+                    },
+                    {
+                      label: "1 hour before due",
+                      value: 1 + "hour before due",
+                    },
+                    {
+                      label: "2 hour before due",
+                      value: 2 + "hour before due",
+                    },
+                    {
+                      label: "5 hour before due",
+                      value: 5 + "hour before due",
+                    },
+                    { label: "1 day before due", value: 1 + "day before due" },
+                  ]}
+                  className="rounded-none"
+                  // onSelect={handelRemindme}
+                />
+              </Form.Item>
             </div>
           </div>
         </>
@@ -339,11 +427,40 @@ const GlobalLayout = ({
           <div className="py-3">
             <div className="mb-2 ml-4">
               <span className="font-semibold text-gray-600">
+                Who shall be assigned this follow up?
+              </span>
+            </div>
+            <div className="text-center">
+              <Form.Item name="assigned_to">
+                <Select
+                  mode="multiple"
+                  size="middle"
+                  defaultActiveFirstOption={true}
+                  defaultValue={staff ? staff[0] : []}
+                  placeholder="Please select"
+                  style={{ width: "95%" }}
+                  options={staff ? staff : []}
+                />
+              </Form.Item>
+            </div>
+          </div>
+        </>
+      ),
+    },
+
+    {
+      content: (
+        <>
+          <div className="py-3">
+            <div className="mb-2 ml-4">
+              <span className="font-semibold text-gray-600">
                 What should be the title of this follow-up ?
               </span>
             </div>
             <div className="text-center">
-              <Input />
+              <Form.Item name="task_title">
+                <Input style={{ width: "95%" }} />
+              </Form.Item>
             </div>
           </div>
         </>
@@ -359,11 +476,20 @@ const GlobalLayout = ({
               </span>
             </div>
             <div className="text-center">
-              <TextArea
-                style={{
-                  padding: "1.2rem",
-                }}
-              />
+              <Form.Item name="details">
+                <TextArea
+                  name="details"
+                  style={{
+                    padding: "1.2rem",
+                  }}
+                  // onChange={(e: any) => {
+                  //   setcreateFollowup((prev) => ({
+                  //     ...prev,
+                  //     task_title: e.target.value,
+                  //   }));
+                  // }}
+                />
+              </Form.Item>
             </div>
           </div>
         </>
@@ -381,6 +507,37 @@ const GlobalLayout = ({
     setLeaderuserDrawer(!openleadUserdrawer);
   };
 
+  const onFormSubmit = async () => {
+    console.log("singleuserdata_id=>", singleUserData._id);
+    console.log("Associated_organization=>", singleUserData.organization[0]);
+    setcreateFollowup((prev) => ({
+      ...prev,
+      details: form.getFieldsValue().details,
+      associated_contacts: [...prev.associated_contacts, singleUserData._id],
+      associated_organization: [
+        ...prev.associated_organization,
+        singleUserData.organization[0],
+      ],
+    }));
+   
+  };
+
+  const sendDataToAPI = async (data: any) => {
+    console.log("followup=>", data);
+    try {
+      let res = await axios.post("/api/v1/engagements/tasks", data);
+      console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  // setcreateFollowup((prev) => ({
+  //   ...prev,
+  //   details: form.getFieldsValue().details,
+  //   associated_contacts: singleUserData._id,
+  //   associated_organization: singleUserData.organization[0],
+  // }))
+
   return (
     <>
       <div
@@ -389,7 +546,7 @@ const GlobalLayout = ({
           height: "95vh",
           width: `${isFilterShown ? "15%" : "0"}`,
           overflowY: "scroll",
-          background: "#A3A3A3",
+          background: "white",
         }}
       >
         {/* filter section */}
@@ -406,9 +563,9 @@ const GlobalLayout = ({
       >
         {/* sidebar content */}
         <div className="flexbg-[white]">
-          <div className="flex items-center  justify-between  px-8 py-3 gap-1 hover:cursor-pointer">
+          <div className="flex items-center  justify-between  px-8 py-2 gap-1 hover:cursor-pointer">
             <div
-              className="p-3 bg-[white] rounded-md"
+              className="p-3 bg-white rounded-md"
               onClick={() => {
                 setIsFilterShown(!isFilterShown);
               }}
@@ -426,8 +583,7 @@ const GlobalLayout = ({
           </div>
         </div>
 
-        <div className="p-2">
-          <p>lorem500</p>
+        <div className="px-2">
           <Table
             rowSelection={rowSelection}
             className={`${isFilterShown ? "visitor-table" : "fullwidth-table"}`}
@@ -483,7 +639,7 @@ const GlobalLayout = ({
           <div className="mt-2 p-2 max-w-[450px] border-b-2 border-zinc-300"></div>
         </div>
         <div className="py-2 px-1">
-          <Dropdown menu={{ items }} placement="bottomLeft">
+          <Dropdown menu={{ items }} placement="bottomLeft" trigger={["click"]}>
             <Button className="bg-[#1161ca] text-white rounded-sm hoverwhite">
               Action
             </Button>
@@ -520,15 +676,18 @@ const GlobalLayout = ({
               </Button>
               {current === steps.length - 1 ? (
                 <Button
-                  className="rounded-none bg-[#2cce75] hovertextwhite text-white font-semibold hover:bg-[#1cad5e] w-20 h-9"
+                  className="rounded-none bg-[#2cce75] hovertextwhite text-white font-semibold hover:bg-[#1cad5e] w-25 h-9"
                   onClick={() => {
+                    onFormSubmit();
                     closefollowupmodel();
                     {
-                      message.success("Processing complete!");
+                      message.success("FollowUp created !");
                     }
                   }}
+                  htmlType="submit"
+                  typeof="submit"
                 >
-                  Done
+                  Create follow-up
                 </Button>
               ) : (
                 <Button
@@ -542,7 +701,6 @@ const GlobalLayout = ({
           </div>
         }
       >
-        {/* 520 *345 */}
         <Steps
           className="px-4 py-2 "
           current={current}
@@ -553,28 +711,9 @@ const GlobalLayout = ({
             textAlign: "center",
           }}
         />
-        {steps[current].content}
-
-        {/* <div style={{ marginTop: 24 }}>
-          {current < steps.length - 1 && (
-            <Button type="primary" onClick={() => next()}>
-              Next
-            </Button>
-          )}
-          {current === steps.length - 1 && (
-            <Button
-              type="primary"
-              onClick={() => message.success("Processing complete!")}
-            >
-              Done
-            </Button>
-          )}
-          {current > 0 && (
-            <Button style={{ margin: "0 8px" }} onClick={() => prev()}>
-              Previous
-            </Button>
-          )}
-        </div> */}
+        <Form form={form} ref={formRef} initialValues={createfollowup}>
+          {steps[current].content}
+        </Form>
       </Modal>
     </>
   );

@@ -6,6 +6,7 @@ const Login = () => {
   const history = useHistory();
   const onFormSubmit = async (value: any) => {
     const login_res = await axios.post("api/v1/users/login", value);
+    console.log("logindetails:", login_res);
     localStorage.setItem("accessToken", login_res.data.accessToken);
 
     history.push("/dashboard");
